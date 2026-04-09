@@ -58,11 +58,6 @@ npx n8nac push {{FILENAME}}.workflow.ts
 # Settings → Import from file → workflow/workflow.json
 ```
 
-## What This Proves
-
-- **Lifecycle layer:** {{Write / Deploy / Test / Debug / Runtime / Full lifecycle}}
-- **Thesis claim:** {{One sentence from THESIS.md this workflow validates}}
-
 ## Status
 
 - [ ] Workflow built

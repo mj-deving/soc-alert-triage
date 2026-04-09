@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# check-secrets.sh — Prueft auf versehentlich committete Secrets
+# check-secrets.sh — Check for accidentally committed secrets
 #
-# Verwendung:
-#   bash check-secrets.sh              Prueft alle Dateien in workflows/ + Root
-#   bash check-secrets.sh --staged     Prueft nur gestagete Dateien (fuer Pre-Commit Hook)
-#   bash check-secrets.sh --strict     Exit Code 1 bei Fund (fuer CI)
+# Usage:
+#   bash check-secrets.sh              Check all files in workflows/ + root
+#   bash check-secrets.sh --staged     Check only staged files (for pre-commit hook)
+#   bash check-secrets.sh --strict     Exit code 1 on finding (for CI)
 #
-# Credential-IDs wie "id: 'FVE8T8mYCgIRpSyv'" sind OKAY — n8n-interne Referenzen.
-# Dieses Script sucht nach ECHTEN Secrets: API Keys, Tokens, Passwoerter.
+# Credential IDs like "id: 'FVE8T8mYCgIRpSyv'" are OKAY — n8n internal references.
+# This script looks for REAL secrets: API keys, tokens, passwords.
 
 set -euo pipefail
 
@@ -27,27 +27,25 @@ for arg in "$@"; do
     esac
 done
 
-# ─── Welche Dateien pruefen? ────────────────────────────────────────────
+# --- Which files to check? ---
 if [ "$STAGED" = true ]; then
-    # Nur gestagete Dateien (fuer Pre-Commit Hook)
     mapfile -t FILES < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null)
 else
-    # Alle relevanten Dateien im Repo
-    mapfile -t FILES < <(find workflows/ -type f -name '*.ts' 2>/dev/null; find . -maxdepth 1 -name '*.json' -o -name '*.env*' 2>/dev/null)
+    mapfile -t FILES < <(find workflows/ -type f -name '*.ts' 2>/dev/null; find . -maxdepth 1 \( -name '*.json' -o -name '*.env*' \) 2>/dev/null)
 fi
 
 if [ ${#FILES[@]} -eq 0 ]; then
-    echo -e "${GREEN}Keine Dateien zu pruefen.${NC}"
+    echo -e "${GREEN}No files to check.${NC}"
     exit 0
 fi
 
-echo -e "${YELLOW}Secret-Check fuer n8n-autopilot${NC}"
+echo -e "${YELLOW}Secret Check${NC}"
 echo "================================="
-echo "Modus: $([ "$STAGED" = true ] && echo 'staged files' || echo 'alle Dateien')"
-echo "Dateien: ${#FILES[@]}"
+echo "Mode: $([ "$STAGED" = true ] && echo 'staged files' || echo 'all files')"
+echo "Files: ${#FILES[@]}"
 echo ""
 
-# ─── 1. Gefaehrliche Dateien im Staging? ────────────────────────────────
+# --- 1. Dangerous files in staging? ---
 DANGER_FILES=('.env' '.env.local' '.env.production' 'credentials.json' '*.pem' '*.key')
 
 for danger_pattern in "${DANGER_FILES[@]}"; do
@@ -55,20 +53,17 @@ for danger_pattern in "${DANGER_FILES[@]}"; do
         fname=$(basename "$f")
         case "$fname" in
             $danger_pattern)
-                echo -e "${RED}BLOCKIERT: $f darf nicht committet werden!${NC}"
+                echo -e "${RED}BLOCKED: $f must not be committed!${NC}"
                 FOUND=$((FOUND + 1))
                 ;;
         esac
     done
 done
 
-# ─── 2. Secret-Patterns in Dateiinhalten ────────────────────────────────
-# Jedes Pattern: regex|beschreibung
+# --- 2. Secret patterns in file contents ---
 PATTERNS=(
-    # Hardcoded Credentials (key = "value" Muster)
-    #   Hinweis: [^"]{4,} statt \x27 — bash grep versteht kein \x27
-    'password\s*[:=]\s*"[^"]{4,}"|Hardcoded Passwort'
-    "password\s*[:=]\s*'[^']{4,}'|Hardcoded Passwort"
+    'password\s*[:=]\s*"[^"]{4,}"|Hardcoded Password'
+    "password\s*[:=]\s*'[^']{4,}'|Hardcoded Password"
     'api_key\s*[:=]\s*"[A-Za-z0-9]|Hardcoded API Key'
     'apiKey\s*[:=]\s*"[A-Za-z0-9]|Hardcoded API Key (camelCase)'
     'secret\s*[:=]\s*"[A-Za-z0-9]|Hardcoded Secret'
@@ -77,7 +72,7 @@ PATTERNS=(
     # Bearer / Auth Header
     'Bearer [A-Za-z0-9._+/=-]{20,}|Bearer Token'
 
-    # Provider-spezifische Keys (Bindestrich am ENDE der Klasse = kein Range)
+    # Provider-specific keys
     'sk-[A-Za-z0-9_-]{20,}|OpenAI API Key'
     'sk-ant-[A-Za-z0-9_-]{20,}|Anthropic API Key'
     'AIza[A-Za-z0-9_-]{30,}|Google API Key'
@@ -90,7 +85,7 @@ PATTERNS=(
     'bot[0-9]{6,}:[A-Za-z0-9_-]{30,}|Telegram Bot Token'
 )
 
-# Erlaubte Kontexte (false positives die ignoriert werden)
+# Allowed contexts (false positives to ignore)
 ALLOWED_CONTEXTS=(
     'googlePalmApi'        # n8n credential type name
     'telegramApi'          # n8n credential type name
@@ -98,9 +93,9 @@ ALLOWED_CONTEXTS=(
     'description'          # Tool descriptions
     'message:'             # System prompts
     'SystemMessage'        # LLM system messages
-    '// '                  # Kommentare
-    'check-secrets'        # Dieses Script selbst
-    'TEMPLATE-REFERENZ'    # Doku
+    '// '                  # Comments
+    'check-secrets'        # This script itself
+    'TEMPLATE-REFERENZ'    # Docs
 )
 
 for entry in "${PATTERNS[@]}"; do
@@ -108,7 +103,6 @@ for entry in "${PATTERNS[@]}"; do
     label="${entry##*|}"
 
     for f in "${FILES[@]}"; do
-        # Nur Textdateien pruefen
         case "$f" in
             *.ts|*.js|*.json|*.env*|*.yml|*.yaml|*.md|*.sh) ;;
             *) continue ;;
@@ -119,7 +113,6 @@ for entry in "${PATTERNS[@]}"; do
         while IFS= read -r match; do
             [ -z "$match" ] && continue
 
-            # False-Positive Filter
             skip=false
             for ctx in "${ALLOWED_CONTEXTS[@]}"; do
                 if echo "$match" | grep -q "$ctx"; then
@@ -136,16 +129,16 @@ for entry in "${PATTERNS[@]}"; do
     done
 done
 
-# ─── Ergebnis ───────────────────────────────────────────────────────────
+# --- Result ---
 echo ""
 if [ "$FOUND" -eq 0 ]; then
-    echo -e "${GREEN}Keine Secrets gefunden. Alles sauber.${NC}"
+    echo -e "${GREEN}No secrets found. All clean.${NC}"
     exit 0
 else
-    echo -e "${RED}$FOUND potenzielle(s) Secret(s) gefunden!${NC}"
-    echo "Bitte pruefen und ggf. aus den Dateien entfernen."
+    echo -e "${RED}$FOUND potential secret(s) found!${NC}"
+    echo "Please review and remove from files if needed."
     if [ "$STRICT" = true ] || [ "$STAGED" = true ]; then
-        echo -e "${RED}Commit wird blockiert.${NC}"
+        echo -e "${RED}Commit blocked.${NC}"
         exit 1
     fi
     exit 0
