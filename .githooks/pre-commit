@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Pre-commit hook: check for accidentally committed secrets
+exec bash "$(git rev-parse --show-toplevel)/scripts/check-secrets.sh" --staged --strict

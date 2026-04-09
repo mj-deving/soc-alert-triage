@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+*.tgz
+
+# AI session artifacts
+.ai/
+.sessions/
+.codex/
+.mcp.json
+CLAUDE.md
+
+# PRD work directories (transient)
+MEMORY/
+
+# Plans (transient)
+Plans/
+
+# n8nac runtime config (instance-specific)
+n8nac-config.json
+
+# Environment
+.env
+.env.local
+.env.production
+
+# OS
+.DS_Store
+Thumbs.db

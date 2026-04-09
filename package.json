@@ -1,0 +1,16 @@
+{
+  "name": "my-n8n-project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Code-first n8n workflows with n8nac",
+  "scripts": {
+    "check-secrets": "bash scripts/check-secrets.sh",
+    "check-secrets:staged": "bash scripts/check-secrets.sh --staged",
+    "check-secrets:strict": "bash scripts/check-secrets.sh --strict",
+    "new-workflow": "bash scripts/new-workflow.sh"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "n8n-as-code": "^1.5.0"
+  }
+}
