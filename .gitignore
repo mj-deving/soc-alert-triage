@@ -10,7 +10,6 @@ dist/
 .sessions/
 .codex/
 .mcp.json
-CLAUDE.md
 
 # PRD work directories (transient)
 MEMORY/
