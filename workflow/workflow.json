@@ -1,0 +1,43 @@
+{
+  "name": "Workflow Template",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "id": "start",
+      "name": "Start"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { message: 'Replace this workflow with your n8n export', timestamp: new Date().toISOString(), status: 'template' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "id": "code",
+      "name": "Process Data"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Process Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateId": "n8n-project-template"
+  }
+}

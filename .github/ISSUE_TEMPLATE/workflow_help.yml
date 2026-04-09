@@ -1,0 +1,55 @@
+name: Workflow Help
+description: Get help with setup, configuration, or usage
+title: "[Help]: "
+labels: ["question", "help-wanted"]
+body:
+  - type: dropdown
+    id: help-type
+    attributes:
+      label: Type of Help Needed
+      options:
+        - Initial setup
+        - Credential configuration
+        - Workflow logic
+        - Trigger configuration
+        - AI/LLM integration
+        - Testing and debugging
+        - Performance tuning
+        - Customization
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Describe what you need help with
+      placeholder: "I'm trying to..."
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What I've Tried
+      description: Steps you've already taken
+      placeholder: "I tried..."
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment Type
+      options:
+        - n8n Cloud
+        - Self-hosted (Docker)
+        - Self-hosted (npm)
+        - Desktop app
+        - Not yet installed
+  - type: input
+    id: n8n-version
+    attributes:
+      label: n8n Version
+      placeholder: "e.g., 2.11.2"
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or Error Messages
+      description: Add any relevant screenshots or error output
