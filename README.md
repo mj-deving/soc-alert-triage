@@ -39,7 +39,7 @@ npx --yes n8nac push my-first-agent.workflow.ts
 | `scripts/` | `new-workflow.sh` (scaffold) + `check-secrets.sh` (pre-commit) |
 | `assets/` | Screenshots, diagrams, and visual assets |
 | `docs/` | GitHub Pages site + Architecture Decision Records |
-| `.beads/` | [Beads](https://github.com/beads-project/beads) AI-native issue tracker |
+| `.beads/` | [Beads](https://github.com/steveyegge/beads) AI-native issue tracker |
 | `.githooks/` | Pre-commit secret detection |
 | `.github/` | Issue templates, funding config, Pages CI |
 
@@ -139,7 +139,7 @@ Then edit `docs/index.html` with your project details.
 
 ### Beads Issue Tracking
 
-This template includes [Beads](https://github.com/beads-project/beads) (`bd`) for AI-native issue tracking:
+This template includes [Beads](https://github.com/steveyegge/beads) (`bd`) for AI-native issue tracking:
 
 ```bash
 bd onboard    # Get started
