@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My n8n Project</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --bg-secondary: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-muted: #8b949e;
+            --link: #58a6ff;
+            --green: #238636;
+            --green-hover: #2ea043;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 32px 0;
+            text-align: center;
+        }
+        header h1 { font-size: 2rem; margin-bottom: 8px; }
+        header p { color: var(--text-muted); font-size: 1.1rem; }
+        .badges { margin-top: 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .badges img { height: 20px; }
+        section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+        section:last-child { border-bottom: none; }
+        h2 { font-size: 1.5rem; margin-bottom: 16px; }
+        h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text-muted); }
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 16px; }
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+        .card:hover { border-color: var(--link); }
+        .card h3 { color: var(--text); }
+        .card p { color: var(--text-muted); font-size: 0.9rem; }
+        pre {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            margin-top: 12px;
+        }
+        code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+        a { color: var(--link); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-top: 12px;
+            margin-right: 8px;
+        }
+        .btn-primary { background: var(--green); color: #fff; }
+        .btn-primary:hover { background: var(--green-hover); text-decoration: none; }
+        .btn-secondary { border: 1px solid var(--border); color: var(--text); }
+        .btn-secondary:hover { border-color: var(--text-muted); text-decoration: none; }
+        .mermaid { margin: 16px 0; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); font-weight: 600; }
+        footer { text-align: center; padding: 32px 0; color: var(--text-muted); font-size: 0.85rem; }
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.5rem; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>My n8n Project</h1>
+            <p>Code-first n8n workflows with n8nac and code-mode.</p>
+            <div class="badges">
+                <img src="https://img.shields.io/badge/n8n-2.x-orange.svg" alt="n8n">
+                <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT">
+                <img src="https://img.shields.io/badge/code--first-n8nac-blue.svg" alt="n8nac">
+            </div>
+        </header>
+
+        <section>
+            <h2>Overview</h2>
+            <p>Describe what this project does. What workflows does it contain? What problem do they solve?</p>
+        </section>
+
+        <section>
+            <h2>Workflow Diagram</h2>
+            <p>Replace with your actual workflow flow:</p>
+            <div class="mermaid">
+                graph LR
+                    A["Trigger"] --> B["Process Data"]
+                    B --> C["Transform"]
+                    C --> D["Output"]
+                    D --> E["Complete"]
+            </div>
+        </section>
+
+        <section>
+            <h2>Key Features</h2>
+            <div class="features">
+                <div class="card">
+                    <h3>Feature 1</h3>
+                    <p>Describe a key capability of your workflow.</p>
+                </div>
+                <div class="card">
+                    <h3>Feature 2</h3>
+                    <p>Describe another capability.</p>
+                </div>
+                <div class="card">
+                    <h3>Feature 3</h3>
+                    <p>Describe a third capability.</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Quick Start</h2>
+            <h3>Prerequisites</h3>
+            <ul style="padding-left: 20px; color: var(--text-muted);">
+                <li>n8n instance (cloud or self-hosted)</li>
+                <li>Node.js 18+</li>
+                <li>n8nac CLI (<code>npm install</code>)</li>
+            </ul>
+            <h3 style="margin-top: 16px;">Install</h3>
+            <pre><code># Clone and set up
+git clone https://github.com/YOUR-USER/YOUR-PROJECT.git
+cd YOUR-PROJECT
+npm install
+npx n8nac init
+
+# Scaffold your first workflow
+npm run new-workflow -- agents/01-my-agent "My Agent"
+
+# Push to n8n
+npx n8nac push my-agent.workflow.ts</code></pre>
+        </section>
+
+        <section>
+            <h2>Documentation</h2>
+            <a href="https://github.com/YOUR-USER/YOUR-PROJECT" class="btn btn-primary">View on GitHub</a>
+            <a href="https://github.com/YOUR-USER/YOUR-PROJECT#quick-start" class="btn btn-secondary">Setup Guide</a>
+        </section>
+
+        <section>
+            <h2>Contributing</h2>
+            <p>Contributions welcome! See the <a href="https://github.com/YOUR-USER/YOUR-PROJECT">GitHub repo</a> for issue templates and guidelines.</p>
+        </section>
+
+        <footer>
+            <p>Built with <a href="https://github.com/mj-deving/n8n-autopilot">n8nac</a> and <a href="https://github.com/universal-tool-calling-protocol/code-mode">code-mode</a>.</p>
+        </footer>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#238636',
+                primaryTextColor: '#c9d1d9',
+                primaryBorderColor: '#30363d',
+                lineColor: '#58a6ff',
+                secondaryColor: '#161b22',
+                tertiaryColor: '#0d1117'
+            }
+        });
+    </script>
+</body>
+</html>
