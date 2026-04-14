@@ -16,16 +16,21 @@ cd YOUR-PROJECT
 # 2. Install dependencies
 npm install
 
-# 3. Connect to your n8n instance
-npx --yes n8nac init
+# 3. Initialize Beads if this repo copy does not already include .beads
+bd init -p "$(basename "$(pwd)")"
 
-# 4. Enable pre-commit secret detection
+# 4. Connect to your n8n instance
+export N8N_API_KEY="<your n8n API key>"
+npm run setup:n8n -- http://<your-n8n-host>:5678
+
+# 5. Enable pre-commit secret detection
 git config core.hooksPath .githooks
 
-# 5. Scaffold your first workflow
+# 6. Scaffold your first workflow
 npm run new-workflow -- agents/01-my-agent "My First Agent"
 
-# 6. Build, push, test
+# 7. Validate locally, then build, push, test
+npm run validate:workflows
 npx --yes n8nac push my-first-agent.workflow.ts
 ```
 
@@ -36,7 +41,7 @@ npx --yes n8nac push my-first-agent.workflow.ts
 | `workflows/` | Your workflow directories (scaffolded by `new-workflow.sh`) |
 | `workflow/` | Root-level workflow export for standalone distribution |
 | `template/` | Scaffold source files for new workflows |
-| `scripts/` | `new-workflow.sh` (scaffold) + `check-secrets.sh` (pre-commit) |
+| `scripts/` | bootstrap, scaffold, secret-check, and local validation helpers |
 | `assets/` | Screenshots, diagrams, and visual assets |
 | `docs/` | GitHub Pages site + Architecture Decision Records |
 | `.beads/` | [Beads](https://github.com/steveyegge/beads) AI-native issue tracker |
@@ -55,9 +60,10 @@ graph LR
 
 1. **Scaffold** a new workflow directory with `npm run new-workflow`
 2. **Develop** in n8n UI or write `.workflow.ts` directly
-3. **Push** to n8n with `npx --yes n8nac push <filename>.workflow.ts`
-4. **Test** with `npx --yes n8nac test <id> --prod`
-5. **Document** the README, benchmarks, and test payloads
+3. **Validate locally** with `npm run validate:workflows`
+4. **Push** to n8n with `npx --yes n8nac push <filename>.workflow.ts`
+5. **Test** with `npx --yes n8nac test <id> --prod`
+6. **Document** the README and test payloads
 
 ## Commands
 
@@ -65,11 +71,18 @@ graph LR
 # Scaffold a new workflow
 npm run new-workflow -- agents/01-my-agent "My Agent Name"
 
+# Bootstrap n8nac non-interactively
+export N8N_API_KEY="<your n8n API key>"
+npm run setup:n8n -- http://<your-n8n-host>:5678
+
 # Check for accidentally committed secrets
 npm run check-secrets
 
 # Validate root workflow JSON
 npm run validate
+
+# Validate all scaffolded workflow.ts files without live credentials
+npm run validate:workflows
 
 # n8nac workflow operations
 npx --yes n8nac list                    # List all workflows
@@ -96,7 +109,6 @@ workflows/<category>/<slug>/
 │   ├── workflow.ts     # n8nac TypeScript source
 │   └── workflow.json   # n8n JSON export (for UI import)
 ├── test.json           # Test payloads
-└── benchmark.md        # Performance data (if applicable)
 ```
 
 For standalone distribution, the root `workflow/workflow.json` contains a single exportable workflow.
@@ -137,17 +149,47 @@ All three agent instruction files are committed and work natively — no manual 
 
 - **`CLAUDE.md`** — Auto-read by Claude Code at startup. References both files below.
 - **`@AGENTS.md`** — Auto-read by Codex. Beads workflow, session protocol, "Landing the Plane".
-- **`AGENTS.md`** — Stub until you run `npx --yes n8nac init`, which generates the full n8nac protocol.
+- **`AGENTS.md`** — Stub until you run `npm run setup:n8n -- <host>` or `npx --yes n8nac init`, which generates the full n8nac protocol.
 
 ### Beads Issue Tracking
 
 This template includes [Beads](https://github.com/steveyegge/beads) (`bd`) for AI-native issue tracking:
 
 ```bash
-bd onboard    # Get started
+bd onboard    # Get started if the repo already contains .beads
+bd init -p "$(basename "$(pwd)")"  # run this first if your generated repo does not
 bd ready      # Find available work
 bd sync       # Sync issues with git
 ```
+
+### Non-interactive n8nac setup
+
+The `n8nac` CLI needs an API key even for initial instance setup. The template now provides a thin wrapper:
+
+```bash
+export N8N_API_KEY="<your n8n API key>"
+npm run setup:n8n -- http://<your-n8n-host>:5678
+```
+
+This runs:
+
+```bash
+npx --yes n8nac init \
+  --host http://<your-n8n-host>:5678 \
+  --sync-folder "$(pwd)" \
+  --instance-name local \
+  --yes
+```
+
+### Credential-free validation
+
+Before pushing to a live n8n instance, validate local workflow sources:
+
+```bash
+npm run validate:workflows
+```
+
+This uses `npx --yes n8nac skills validate` against every `workflow.ts` file under `workflows/`.
 
 ## Documentation
 

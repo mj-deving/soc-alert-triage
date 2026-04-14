@@ -52,7 +52,7 @@ See `test.json` for all test payloads.
 
 ```bash
 # Push to your n8n instance
-npx n8nac push {{FILENAME}}.workflow.ts
+npx --yes n8nac push {{FILENAME}}.workflow.ts
 
 # Or import workflow.json via n8n UI:
 # Settings → Import from file → workflow/workflow.json

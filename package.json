@@ -4,14 +4,16 @@
   "private": true,
   "description": "Code-first n8n workflows with n8nac",
   "scripts": {
+    "setup:n8n": "bash scripts/init-n8n.sh",
     "check-secrets": "bash scripts/check-secrets.sh",
     "check-secrets:staged": "bash scripts/check-secrets.sh --staged",
     "check-secrets:strict": "bash scripts/check-secrets.sh --strict",
     "new-workflow": "bash scripts/new-workflow.sh",
-    "validate": "jq . workflow/workflow.json > /dev/null && echo 'Workflow JSON is valid'"
+    "validate": "jq . workflow/workflow.json > /dev/null && echo 'Workflow JSON is valid'",
+    "validate:workflows": "bash scripts/validate-workflows.sh"
   },
   "license": "MIT",
   "devDependencies": {
-    "n8n-as-code": "^1.5.0"
+    "n8nac": "^1.6.2"
   }
 }
