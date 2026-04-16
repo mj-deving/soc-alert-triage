@@ -6,35 +6,74 @@ Ingests alerts from SIEM (Wazuh, Elastic, Splunk), enriches with threat intel (V
 
 ## Architecture
 
-```
-POST /webhook/soc-alert-triage
-  │
-  ▼
-┌─────────────┐    ┌──────────────┐    ┌─────────────────────────────────┐
-│  Webhook    │───▶│  Normalize   │───▶│  AI Agent (Haiku)               │
-│  (POST)     │    │  (Code)      │    │  + Enrich IP Tool (toolCode)    │
-└─────────────┘    └──────────────┘    │    Promise.allSettled:           │
-                                       │    ├─ Shodan InternetDB          │
-                                       │    ├─ MITRE ATT&CK mapping      │
-                                       │    ├─ VirusTotal v3              │
-                                       │    └─ AbuseIPDB v2              │
-                                       └──────────────┬──────────────────┘
-                                                      │
-                                                      ▼
-                                       ┌──────────────────────────────────┐
-                                       │  Score & Dedup (Code)            │
-                                       │  Weighted severity scoring       │
-                                       │  IP deduplication (1hr window)   │
-                                       └──────────────┬──────────────────┘
-                                                      │
-                                                      ▼
-                                       ┌──────────────────────────────────┐
-                                       │  Severity Router (Switch)        │
-                                       │  ├─ [0] Critical ──▶ Telegram   │
-                                       │  ├─ [1] High ──────▶ Telegram   │
-                                       │  ├─ [2] Medium (log only)       │
-                                       │  └─ [3] Low (dismiss)           │
-                                       └──────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph INGESTION["Ingestion"]
+        WH["Webhook\nPOST /soc-alert-triage"]
+        NORM["Normalize Alert\n(Code)"]
+        WH --> NORM
+    end
+
+    subgraph SIEM["Alert Sources"]
+        direction LR
+        W["Wazuh"]
+        E["Elastic SIEM"]
+        G["Generic JSON"]
+    end
+
+    SIEM -.-> WH
+
+    subgraph ENRICHMENT["AI Enrichment"]
+        AGENT["Triage Agent\n(AI Agent)"]
+        LLM["Haiku Model\n(OpenRouter)"]
+        TOOL["Enrich IP Tool\n(toolCode)"]
+        LLM -. "ai_languageModel" .-> AGENT
+        TOOL -. "ai_tool" .-> AGENT
+    end
+
+    subgraph THREATINTEL["Threat Intel — Promise.allSettled"]
+        direction LR
+        SH["Shodan\nInternetDB"]
+        MI["MITRE\nATT&CK"]
+        VT["VirusTotal\nv3"]
+        AB["AbuseIPDB\nv2"]
+    end
+
+    TOOL --- THREATINTEL
+
+    subgraph SCORING["Scoring & Routing"]
+        SCORE["Score & Dedup\n(Code)\nWeighted severity\nIP dedup 1hr window"]
+        ROUTER["Severity Router\n(Switch)"]
+        SCORE --> ROUTER
+    end
+
+    NORM --> AGENT
+    AGENT --> SCORE
+
+    ROUTER -- "≥80 Critical" --> CRIT["🔴 Alert Critical\n(Telegram)"]
+    ROUTER -- "60–79 High" --> HIGH["🟠 Alert High\n(Telegram)"]
+    ROUTER -- "40–59 Medium" --> MED["🟡 Log Only"]
+    ROUTER -- "<40 Low" --> LOW["🟢 Dismiss"]
+
+    classDef trigger fill:#1a1a2e,stroke:#e94560,color:#fff
+    classDef code fill:#1a1a2e,stroke:#0f3460,color:#fff
+    classDef ai fill:#1a1a2e,stroke:#8b5cf6,color:#fff
+    classDef intel fill:#0d1117,stroke:#30363d,color:#8b949e
+    classDef critical fill:#7f1d1d,stroke:#ef4444,color:#fff
+    classDef high fill:#7c2d12,stroke:#f97316,color:#fff
+    classDef medium fill:#713f12,stroke:#eab308,color:#fff
+    classDef low fill:#14532d,stroke:#22c55e,color:#fff
+    classDef source fill:#0d1117,stroke:#30363d,color:#8b949e
+
+    class WH trigger
+    class NORM,SCORE code
+    class AGENT,LLM,TOOL ai
+    class SH,MI,VT,AB intel
+    class CRIT critical
+    class HIGH high
+    class MED medium
+    class LOW low
+    class W,E,G source
 ```
 
 **9 nodes** | Built with [n8nac](https://github.com/mj-deving/n8n-autopilot) (code-first n8n)
