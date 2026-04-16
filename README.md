@@ -78,20 +78,33 @@ flowchart TD
 
 **9 nodes** | Built with [n8nac](https://github.com/mj-deving/n8n-autopilot) (code-first n8n)
 
-## Why Code-Mode
+## Benchmark: Code-Mode vs Traditional
 
-Traditional n8n AI agents make 8-15 sequential tool calls per alert (one per API). This workflow fires all enrichment calls **in parallel** inside a single `Promise.allSettled` execution in the V8 sandbox:
+Traditional n8n AI agents make 7+ sequential tool calls per alert — each call replays the full conversation history, causing **O(n^2) token growth**. This workflow fires all enrichment in parallel inside a single `Promise.allSettled`, keeping token usage **O(1)**.
 
-- **95%+ token savings** — one tool call instead of 8-15
-- **3-5x faster** — parallel HTTP vs sequential LLM round-trips
-- **500 alerts/day** at scale without hitting LLM rate limits
+| Metric | Traditional (7 tool calls) | Code-Mode (1 tool call) | Savings |
+|---|---|---|---|
+| **LLM calls per alert** | 7 | 2 | **71% fewer** |
+| **Tokens per alert** | ~10,280 | 1,423 | **86% fewer** |
+| **Enrichment latency** | ~1,250ms (sequential) | 245ms (parallel) | **5x faster** |
+| **End-to-end execution** | ~23s | ~7s | **3.3x faster** |
+| **Annual LLM cost** (500 alerts/day) | $1,857 | $560 | **$1,297/year saved** |
+| **n8n nodes** | ~15 | 9 | **40% fewer** |
+
+> Measured on 3 real executions using Claude Haiku 4.5 via OpenRouter. Token counts from n8n execution metadata. Traditional approach modeled analytically — the O(n^2) growth is inherent to ReAct agent patterns where each tool result accumulates in the prompt. Full methodology in [`benchmark.md`](benchmark.md).
+
+### Why the savings are structural
+
+Each traditional tool call replays **all prior results** in the prompt. After VirusTotal returns 500 tokens of JSON, every subsequent call (AbuseIPDB, Shodan, MITRE, scoring, dedup, formatting) includes those 500 tokens again. By call 7, the prompt contains the system message + alert + 6 API responses + 6 decisions.
+
+Code-mode sidesteps this entirely: enrichment runs in JavaScript (zero LLM tokens), and the LLM sees the combined result **exactly once**. Adding a 5th or 6th API source adds ~100ms of parallel HTTP time and zero additional LLM overhead.
 
 ## Verified Test Results
 
 | Test IP | Type | Score | Level | Route | Shodan | MITRE |
 |---|---|---|---|---|---|---|
 | `185.220.101.34` | Tor exit node | 73 | High | Telegram | `tor-exit-34.for-privacy.net`, ports 80/10134 | T1110 Brute Force |
-| `8.8.8.8` | Google DNS | 23 | Low | Dismiss | 2 ports, no indicators | No match |
+| `8.8.8.8` | Google DNS | 23 | Low | Dismiss | `dns.google`, ports 53/443 | No match |
 
 Scoring breakdown for the Tor exit node: Shodan=40 (ports + Tor hostname) + base=75 (high severity alert), redistributed to 50/50 weight since VT/AbuseIPDB unavailable, plus MITRE boost +15 = **73/100**.
 
