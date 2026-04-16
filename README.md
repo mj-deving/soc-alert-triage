@@ -1,8 +1,19 @@
 # SOC Alert Triage
 
-AI-powered Security Operations Center alert triage with parallel threat intelligence enrichment.
+![n8n](https://img.shields.io/badge/n8n-2.x-orange.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Code-First](https://img.shields.io/badge/code--first-n8nac-blue.svg)
+![Status](https://img.shields.io/badge/status-live--verified-brightgreen.svg)
+
+**Drop in a SIEM alert, get back a scored, enriched, MITRE-mapped triage decision in 7 seconds — using 86% fewer tokens than a traditional agent.**
 
 Ingests alerts from SIEM (Wazuh, Elastic, Splunk), enriches with threat intel (VirusTotal, AbuseIPDB, Shodan, MITRE ATT&CK mapping), scores severity, deduplicates into incidents, and routes to response actions — all built as a single n8n workflow using code-mode parallel execution.
+
+## Why This Is Different
+
+Traditional n8n agents make one tool call per enrichment source — VirusTotal, AbuseIPDB, Shodan, MITRE — each replaying the full conversation history. After 7 round-trips, the prompt contains the system message + alert + 6 API responses + 6 decisions. That's **O(n²) token growth**.
+
+This workflow fires all enrichment in parallel inside a single `Promise.allSettled` call. The LLM sees the combined result **exactly once**. Adding a 5th or 6th API source costs ~100ms of parallel HTTP time and zero additional LLM overhead. That's **O(1)**.
 
 ## Architecture
 
@@ -255,16 +266,6 @@ Expected: score ~23, severity LOW, no notification.
 ## Deduplication
 
 Tracks source IPs in a 1-hour rolling window via `$getWorkflowStaticData('global')`. Duplicate alerts are flagged (`is_duplicate: true`) but still processed through the full pipeline. The dedup count and first-seen timestamp are included in Telegram notifications.
-
-## n8n Sandbox Constraints
-
-All enrichment code runs in n8n's restricted V8 sandbox:
-
-- No `require()` — no filesystem, no native modules
-- No `fetch()` — only `this.helpers.httpRequest()` for HTTP
-- `Promise.allSettled()` works for parallel execution
-- `$getWorkflowStaticData('global')` for cross-execution persistence
-- `toolCode` `inputSchema` must be a JSON **string**, not a JS object
 
 ## License
 

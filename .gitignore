@@ -36,3 +36,8 @@ Thumbs.db
 .dolt/
 *.db
 .beads-credential-key
+
+# n8nac state files
+.n8n-state.json
+n8n-workflows.d.ts
+tsconfig.json
