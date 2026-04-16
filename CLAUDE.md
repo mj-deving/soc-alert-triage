@@ -62,7 +62,7 @@ bd sync               # End session — persist state for next agent
 
 ## Critical Rules
 
-- **Push filename only**: `npx --yes n8nac push workflow.ts` — no paths
+- **Push full path**: `npx --yes n8nac push "workflows/172_31_224_1:5678_marius _j/personal/<file>.workflow.ts"` — not bare filename
 - **Init required**: Must run `npx --yes n8nac init` before pull/push
 - **Auth header**: n8n API uses `X-N8N-API-KEY` header, NOT `Authorization: Bearer`
 - **Session end**: Always run `bd sync` then `git push` — Landing the Plane protocol
@@ -79,6 +79,7 @@ n8n Code nodes run in a restricted sandbox. These rules apply to ALL Code nodes 
 - **`query` with `specifyInputSchema: true`** — `query` is an object `{query: "..."}`, access via `query.query`
 - **Sibling tool args** — use `args ?? {}` not `args || {}` (falsy primitives are valid)
 - **Persistence** — use `$getWorkflowStaticData('global')` or workflow data flow, never filesystem
+- **toolCode `inputSchema`** — must be a JSON **string**, not a JS object. n8n parses it with `JSON.parse()`. Passing an object causes `[object Object]` error.
 
 ## n8n Error Classification
 
