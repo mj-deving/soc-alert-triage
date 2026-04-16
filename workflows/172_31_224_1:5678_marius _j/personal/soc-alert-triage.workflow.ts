@@ -2,7 +2,7 @@ import { workflow, node, links } from '@n8n-as-code/transformer';
 
 // <workflow-map>
 // Workflow : SOC Alert Triage
-// Nodes   : 5  |  Connections: 2
+// Nodes   : 7  |  Connections: 4
 //
 // NODE INDEX
 // ──────────────────────────────────────────────────────────────────
@@ -12,12 +12,16 @@ import { workflow, node, links } from '@n8n-as-code/transformer';
 // TriageAgent                        agent                      [AI]
 // HaikuModel                         lmChatOpenAi               [creds] [ai_languageModel]
 // EnrichIpTool                       toolCode                   [ai_tool]
+// ScoreAndDedup                      code
+// SeverityRouter                     switch
 //
 // ROUTING MAP
 // ──────────────────────────────────────────────────────────────────
 // AlertWebhook
 //    → NormalizeAlert
 //      → TriageAgent
+//        → ScoreAndDedup
+//          → SeverityRouter
 //
 // AI CONNECTIONS
 // TriageAgent.uses({ ai_languageModel: HaikuModel, ai_tool: [EnrichIpTool] })
@@ -49,7 +53,7 @@ export class SocAlertTriageWorkflow {
     AlertWebhook = {
         httpMethod: 'POST',
         path: 'soc-alert-triage',
-        responseMode: 'lastNode',
+        responseMode: 'onReceived',
         responseCode: 200,
         responseBinaryPropertyName: 'data',
     };
@@ -301,6 +305,178 @@ for (const result of results) {
 return JSON.stringify(enrichment);`,
     };
 
+    @node({
+        id: 'ea0e3444-f439-4dd4-956d-6daf230f9a4e',
+        name: 'Score and Dedup',
+        type: 'n8n-nodes-base.code',
+        version: 2,
+        position: [1000, 300],
+    })
+    ScoreAndDedup = {
+        mode: 'runOnceForAllItems',
+        language: 'javaScript',
+        jsCode: `// Severity Scoring + Deduplication
+// Parses agent enrichment output, computes weighted severity score,
+// tracks IP dedup via workflow static data
+
+const items = $input.all();
+const results = [];
+const staticData = $getWorkflowStaticData('global');
+if (!staticData.seen_ips) staticData.seen_ips = {};
+
+const DEDUP_WINDOW_MS = 3600000; // 1 hour
+const now = Date.now();
+
+// Clean expired entries from dedup window
+for (const ip of Object.keys(staticData.seen_ips)) {
+  if (now - staticData.seen_ips[ip].last_seen > DEDUP_WINDOW_MS) {
+    delete staticData.seen_ips[ip];
+  }
+}
+
+for (const item of items) {
+  // Parse agent output — extract JSON from markdown code fences or raw text
+  let agentText = item.json.output || '';
+  let parsed = {};
+  try {
+    // Try extracting JSON from code fences first
+    const fenceMatch = agentText.match(/\`\`\`(?:json)?\\s*([\\s\\S]*?)\\s*\`\`\`/);
+    const jsonStr = fenceMatch ? fenceMatch[1] : agentText;
+    // If no fence match, try finding first { to last }
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      parsed = JSON.parse(jsonStr.substring(firstBrace, lastBrace + 1));
+    } else {
+      parsed = JSON.parse(jsonStr);
+    }
+  } catch (e) {
+    // If agent didn't return valid JSON, create minimal structure
+    parsed = { alert: {}, enrichment: {}, summary: agentText };
+  }
+
+  const alert = parsed.alert || {};
+  const enrichment = parsed.enrichment || {};
+  const sourceIp = alert.source_ip || 'unknown';
+
+  // --- Compute per-source scores (0-100) ---
+  let scores = {};
+  let weights = { virustotal: 0.3, abuseipdb: 0.3, shodan: 0.2, base: 0.2 };
+  let availableWeight = 0;
+
+  // Shodan InternetDB score
+  const shodan = enrichment.shodan_internetdb || {};
+  if (shodan.success) {
+    const data = shodan.data || {};
+    const portCount = (data.ports || []).length;
+    const vulnCount = (data.vulns || []).length;
+    const isTor = (data.hostnames || []).some(h => h.includes('tor'));
+    let shodanScore = Math.min(portCount * 10, 40) + Math.min(vulnCount * 20, 40) + (isTor ? 20 : 0);
+    scores.shodan = Math.min(shodanScore, 100);
+    availableWeight += weights.shodan;
+  }
+
+  // MITRE ATT&CK — boost score if technique matched
+  const mitre = enrichment.mitre_attack || {};
+  let mitreBoost = 0;
+  if (mitre.success && mitre.data && mitre.data.technique_id) {
+    mitreBoost = 15;
+  }
+
+  // VirusTotal score
+  const vt = enrichment.virustotal || {};
+  if (vt.success && vt.data) {
+    const stats = vt.data.last_analysis_stats || {};
+    const malicious = stats.malicious || 0;
+    const total = (stats.malicious || 0) + (stats.undetected || 0) + (stats.harmless || 0) + (stats.suspicious || 0);
+    const vtRatio = total > 0 ? (malicious / total) * 100 : 0;
+    const repScore = Math.min(Math.abs(vt.data.reputation || 0), 100);
+    scores.virustotal = Math.min(Math.max(vtRatio, repScore), 100);
+    availableWeight += weights.virustotal;
+  }
+
+  // AbuseIPDB score
+  const abuse = enrichment.abuseipdb || {};
+  if (abuse.success && abuse.data) {
+    scores.abuseipdb = abuse.data.abuse_confidence_score || 0;
+    availableWeight += weights.abuseipdb;
+  }
+
+  // Base severity score
+  const severityMap = { critical: 100, high: 75, medium: 50, low: 25 };
+  scores.base = severityMap[alert.severity] || 50;
+  availableWeight += weights.base;
+
+  // --- Compute weighted score with redistribution ---
+  let totalScore = 0;
+  if (availableWeight > 0) {
+    if (scores.shodan !== undefined) totalScore += scores.shodan * (weights.shodan / availableWeight);
+    if (scores.virustotal !== undefined) totalScore += scores.virustotal * (weights.virustotal / availableWeight);
+    if (scores.abuseipdb !== undefined) totalScore += scores.abuseipdb * (weights.abuseipdb / availableWeight);
+    totalScore += scores.base * (weights.base / availableWeight);
+  }
+
+  // Apply MITRE boost
+  totalScore = Math.min(totalScore + mitreBoost, 100);
+  totalScore = Math.round(totalScore);
+
+  // --- Determine severity level ---
+  let severityLevel, routeIndex;
+  if (totalScore >= 80) { severityLevel = 'critical'; routeIndex = 0; }
+  else if (totalScore >= 60) { severityLevel = 'high'; routeIndex = 1; }
+  else if (totalScore >= 40) { severityLevel = 'medium'; routeIndex = 2; }
+  else { severityLevel = 'low'; routeIndex = 3; }
+
+  // --- Deduplication ---
+  let isDuplicate = false;
+  let dedupInfo = { first_seen: new Date().toISOString(), count: 1, last_seen: now };
+
+  if (staticData.seen_ips[sourceIp]) {
+    const prev = staticData.seen_ips[sourceIp];
+    isDuplicate = true;
+    dedupInfo = {
+      first_seen: prev.first_seen,
+      count: prev.count + 1,
+      last_seen: now,
+    };
+  }
+  staticData.seen_ips[sourceIp] = dedupInfo;
+
+  results.push({
+    json: {
+      severity_score: totalScore,
+      severity_level: severityLevel,
+      route_index: routeIndex,
+      is_duplicate: isDuplicate,
+      dedup: dedupInfo,
+      scores_breakdown: scores,
+      mitre_boost: mitreBoost,
+      alert: alert,
+      enrichment: enrichment,
+      summary: parsed.summary || null,
+    },
+  });
+}
+
+return results;`,
+    };
+
+    @node({
+        id: 'ba5da93a-08f3-482c-a7ee-899cce71bb03',
+        name: 'Severity Router',
+        type: 'n8n-nodes-base.switch',
+        version: 3.4,
+        position: [1250, 300],
+    })
+    SeverityRouter = {
+        mode: 'expression',
+        numberOutputs: 4,
+        output: '={{ $json.route_index }}',
+        options: {
+            fallbackOutput: 3,
+        },
+    };
+
     // =====================================================================
     // ROUTAGE ET CONNEXIONS
     // =====================================================================
@@ -309,6 +485,8 @@ return JSON.stringify(enrichment);`,
     defineRouting() {
         this.AlertWebhook.out(0).to(this.NormalizeAlert.in(0));
         this.NormalizeAlert.out(0).to(this.TriageAgent.in(0));
+        this.TriageAgent.out(0).to(this.ScoreAndDedup.in(0));
+        this.ScoreAndDedup.out(0).to(this.SeverityRouter.in(0));
 
         this.TriageAgent.uses({
             ai_languageModel: this.HaikuModel.output,
