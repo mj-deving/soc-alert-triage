@@ -1,8 +1,8 @@
 {
-  "name": "my-n8n-project",
-  "version": "1.0.0",
+  "name": "soc-alert-triage",
+  "version": "0.1.0",
   "private": true,
-  "description": "Code-first n8n workflows with n8nac",
+  "description": "SOC Alert Triage — code-mode parallel threat intel enrichment for security operations",
   "scripts": {
     "setup:n8n": "bash scripts/init-n8n.sh",
     "check-secrets": "bash scripts/check-secrets.sh",

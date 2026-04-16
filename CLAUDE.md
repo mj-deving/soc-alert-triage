@@ -1,4 +1,29 @@
-# CLAUDE.md — n8n Project
+# CLAUDE.md — SOC Alert Triage
+
+## Project
+
+AI-powered Security Operations Center alert triage. Ingests alerts from SIEM (Wazuh, Elastic, Splunk), enriches with threat intel (VirusTotal, AbuseIPDB, Shodan, MITRE ATT&CK mapping), scores severity, deduplicates into incidents, and routes to response playbooks — all in one code-mode execution using parallel enrichment.
+
+**This showcases code-mode's parallel execution** — 8-15 threat intel API calls per alert fire simultaneously via Promise.all in the V8 sandbox, instead of sequential LLM tool calls.
+
+**Full build plan:** Read `docs/SESSION-KICKOFF.md` for architecture, phased plan, scope, and success criteria.
+
+**Roadmap source:** [code-first-n8n/docs/ROADMAP.md](https://github.com/mj-deving/code-first-n8n/blob/main/docs/ROADMAP.md) — Tier 1, Item #2
+
+## n8n Instance
+
+- **Host:** `http://172.31.224.1:5678` (Windows n8n, accessed from WSL via vEthernet bridge — NOT localhost)
+- **Auth header:** `X-N8N-API-KEY` (NOT `Authorization: Bearer`)
+- **Env vars:** `$N8N_API_KEY` and `$N8N_HOST` set in `~/.bashrc`
+- **workflowDir:** `workflows/172_31_224_1:5678_marius _j/personal/`
+
+## n8n Credentials
+
+| Credential | ID | Type | Use For |
+|---|---|---|---|
+| OpenRouter | `mOL6UoYXfgKf6RZh` | openAiApi | LLM (Haiku) for triage reasoning |
+| Google Gemini | `FVE8T8mYCgIRpSyv` | googlePalmApi | Alternative LLM |
+| Telegram Bot | `nzmbw9ZNGZdA9sZp` | telegramApi | Alert notifications |
 
 ## Before Any Work
 
@@ -71,3 +96,4 @@ n8n Code nodes run in a restricted sandbox. These rules apply to ALL Code nodes 
 - **Gemini + n8n tools = broken** — Gemini 2.0/2.5 Flash sends null tool arguments. Use Claude Haiku
 - **OpenRouter model IDs**: `anthropic/claude-haiku-4-5` works. `anthropic/claude-3.5-sonnet` is dead
 - **lmChatOpenAi typeVersion 1** accepts plain string model IDs. **Version 1.3** requires `{mode: 'list', value: 'model-id'}`
+- **Default LLM config for this project:** OpenRouter credential `mOL6UoYXfgKf6RZh`, model `anthropic/claude-haiku-4-5`, typeVersion 1.3
