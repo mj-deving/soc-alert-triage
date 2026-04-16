@@ -178,7 +178,7 @@ Phase 1 is done when:
 Full project is done when:
 - [x] Alert → enrich (4 sources parallel) → score → route → notify works end-to-end
 - [x] Known malicious IP triggers high severity with enrichment data
-- [ ] Clean IP triggers low severity (not yet tested — requires benign IP test)
+- [x] Clean IP triggers low severity (8.8.8.8 → score 23, route_index 3)
 - [x] Deduplication prevents duplicate incidents for same IP within rolling window
 - [x] Notification includes structured incident card with enrichment summary
 
