@@ -170,17 +170,17 @@ IP `185.220.101.34` is a known Tor exit node — good for testing enrichment (wi
 ## Success Criteria
 
 Phase 1 is done when:
-- [ ] Triage workflow exists on n8n and accepts webhook POST
-- [ ] Normalizer correctly extracts source IP, dest IP, alert type from Wazuh format
-- [ ] Webhook returns 200 and workflow executes successfully
-- [ ] Test with sample Wazuh payload produces normalized output
+- [x] Triage workflow exists on n8n and accepts webhook POST
+- [x] Normalizer correctly extracts source IP, dest IP, alert type from Wazuh format
+- [x] Webhook returns 200 and workflow executes successfully
+- [x] Test with sample Wazuh payload produces normalized output
 
 Full project is done when:
-- [ ] Alert → enrich (4 sources parallel) → score → route → notify works end-to-end
-- [ ] Known malicious IP triggers high severity with enrichment data
-- [ ] Clean IP triggers low severity
-- [ ] Deduplication prevents duplicate incidents for same IP within rolling window
-- [ ] Notification includes structured incident card with enrichment summary
+- [x] Alert → enrich (4 sources parallel) → score → route → notify works end-to-end
+- [x] Known malicious IP triggers high severity with enrichment data
+- [ ] Clean IP triggers low severity (not yet tested — requires benign IP test)
+- [x] Deduplication prevents duplicate incidents for same IP within rolling window
+- [x] Notification includes structured incident card with enrichment summary
 
 ## Start Command
 

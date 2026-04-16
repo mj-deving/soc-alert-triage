@@ -2,7 +2,7 @@ import { workflow, node, links } from '@n8n-as-code/transformer';
 
 // <workflow-map>
 // Workflow : SOC Alert Triage
-// Nodes   : 7  |  Connections: 4
+// Nodes   : 9  |  Connections: 6
 //
 // NODE INDEX
 // ──────────────────────────────────────────────────────────────────
@@ -14,6 +14,8 @@ import { workflow, node, links } from '@n8n-as-code/transformer';
 // EnrichIpTool                       toolCode                   [ai_tool]
 // ScoreAndDedup                      code
 // SeverityRouter                     switch
+// AlertCritical                      telegram                   [creds]
+// AlertHigh                          telegram                   [creds]
 //
 // ROUTING MAP
 // ──────────────────────────────────────────────────────────────────
@@ -22,6 +24,8 @@ import { workflow, node, links } from '@n8n-as-code/transformer';
 //      → TriageAgent
 //        → ScoreAndDedup
 //          → SeverityRouter
+//            → AlertCritical
+//           .out(1) → AlertHigh
 //
 // AI CONNECTIONS
 // TriageAgent.uses({ ai_languageModel: HaikuModel, ai_tool: [EnrichIpTool] })
@@ -189,7 +193,9 @@ Always return valid JSON. Be concise and focus on actionable intelligence.`,
             mode: 'list',
             value: 'anthropic/claude-haiku-4-5',
         },
-        options: {},
+        options: {
+            maxTokens: 4096,
+        },
     };
 
     @node({
@@ -477,6 +483,70 @@ return results;`,
         },
     };
 
+    @node({
+        id: '70b1304b-54aa-4ea5-b429-073333e75de2',
+        name: 'Alert Critical',
+        type: 'n8n-nodes-base.telegram',
+        version: 1.2,
+        position: [1500, 100],
+        credentials: { telegramApi: { id: 'nzmbw9ZNGZdA9sZp', name: 'Telegram Bot' } },
+    })
+    AlertCritical = {
+        chatId: '={{ $getWorkflowStaticData("global").telegram_chat_id || "CONFIGURE_CHAT_ID" }}',
+        text: `=🔴 CRITICAL SECURITY ALERT
+
+⚠️ Score: {{ $json.severity_score }}/100
+
+📋 Alert: {{ $json.alert.alert_type }}
+🌐 Source IP: {{ $json.alert.source_ip }}
+🎯 Target: {{ $json.alert.dest_ip }}:{{ $json.alert.dest_port }}
+📡 Source: {{ $json.alert.source }}
+🕐 Time: {{ $json.alert.timestamp }}
+
+🔍 Enrichment:
+{{ $json.enrichment.shodan_internetdb?.success ? '• Shodan: ' + ($json.enrichment.shodan_internetdb.data?.hostnames?.join(', ') || 'no hostnames') + ' | Ports: ' + ($json.enrichment.shodan_internetdb.data?.ports?.join(', ') || 'none') : '• Shodan: unavailable' }}
+{{ $json.enrichment.mitre_attack?.success && $json.enrichment.mitre_attack.data?.technique_id ? '• MITRE: ' + $json.enrichment.mitre_attack.data.technique_id + ' ' + $json.enrichment.mitre_attack.data.technique_name + ' (' + $json.enrichment.mitre_attack.data.tactic + ')' : '• MITRE: no match' }}
+{{ $json.enrichment.virustotal?.success ? '• VT: reputation ' + $json.enrichment.virustotal.data?.reputation : '• VT: not configured' }}
+{{ $json.enrichment.abuseipdb?.success ? '• AbuseIPDB: confidence ' + $json.enrichment.abuseipdb.data?.abuse_confidence_score + '%' : '• AbuseIPDB: not configured' }}
+
+{{ $json.is_duplicate ? '🔁 DUPLICATE: seen ' + $json.dedup.count + ' times since ' + $json.dedup.first_seen : '🆕 First occurrence' }}
+
+🏷️ Scoring: {{ Object.entries($json.scores_breakdown).map(([k,v]) => k + '=' + v).join(', ') }}{{ $json.mitre_boost > 0 ? ' +MITRE boost ' + $json.mitre_boost : '' }}`,
+        additionalFields: {
+            parse_mode: 'HTML',
+        },
+    };
+
+    @node({
+        id: '400b9356-bfb6-4bf2-a063-19c5216a3ee9',
+        name: 'Alert High',
+        type: 'n8n-nodes-base.telegram',
+        version: 1.2,
+        position: [1500, 300],
+        credentials: { telegramApi: { id: 'nzmbw9ZNGZdA9sZp', name: 'Telegram Bot' } },
+    })
+    AlertHigh = {
+        chatId: '={{ $getWorkflowStaticData("global").telegram_chat_id || "CONFIGURE_CHAT_ID" }}',
+        text: `=🟠 HIGH SEVERITY ALERT
+
+⚠️ Score: {{ $json.severity_score }}/100
+
+📋 Alert: {{ $json.alert.alert_type }}
+🌐 Source IP: {{ $json.alert.source_ip }}
+🎯 Target: {{ $json.alert.dest_ip }}:{{ $json.alert.dest_port }}
+📡 Source: {{ $json.alert.source }}
+🕐 Time: {{ $json.alert.timestamp }}
+
+🔍 Enrichment:
+{{ $json.enrichment.shodan_internetdb?.success ? '• Shodan: ' + ($json.enrichment.shodan_internetdb.data?.hostnames?.join(', ') || 'no hostnames') + ' | Ports: ' + ($json.enrichment.shodan_internetdb.data?.ports?.join(', ') || 'none') : '• Shodan: unavailable' }}
+{{ $json.enrichment.mitre_attack?.success && $json.enrichment.mitre_attack.data?.technique_id ? '• MITRE: ' + $json.enrichment.mitre_attack.data.technique_id + ' ' + $json.enrichment.mitre_attack.data.technique_name + ' (' + $json.enrichment.mitre_attack.data.tactic + ')' : '• MITRE: no match' }}
+
+{{ $json.is_duplicate ? '🔁 DUPLICATE: seen ' + $json.dedup.count + ' times' : '🆕 First occurrence' }}`,
+        additionalFields: {
+            parse_mode: 'HTML',
+        },
+    };
+
     // =====================================================================
     // ROUTAGE ET CONNEXIONS
     // =====================================================================
@@ -487,6 +557,8 @@ return results;`,
         this.NormalizeAlert.out(0).to(this.TriageAgent.in(0));
         this.TriageAgent.out(0).to(this.ScoreAndDedup.in(0));
         this.ScoreAndDedup.out(0).to(this.SeverityRouter.in(0));
+        this.SeverityRouter.out(0).to(this.AlertCritical.in(0));
+        this.SeverityRouter.out(1).to(this.AlertHigh.in(0));
 
         this.TriageAgent.uses({
             ai_languageModel: this.HaikuModel.output,
