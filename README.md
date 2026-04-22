@@ -1,9 +1,6 @@
 # SOC Alert Triage
 
-![n8n](https://img.shields.io/badge/n8n-2.x-orange.svg)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Code-First](https://img.shields.io/badge/code--first-n8nac-blue.svg)
-![Status](https://img.shields.io/badge/status-live--verified-brightgreen.svg)
+![n8n](https://img.shields.io/badge/-n8n-EA4B71?style=flat-square) ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?style=flat-square) ![Security](https://img.shields.io/badge/-Security-DC3545?style=flat-square)
 
 **Drop in a SIEM alert, get back a scored, enriched, MITRE-mapped triage decision in 7 seconds — using 86% fewer tokens than a traditional agent.**
 
