@@ -46,14 +46,14 @@ The scoring weights are VirusTotal 0.3, AbuseIPDB 0.3, Shodan 0.2, and the alert
 
 | What | Value | When |
 |---|---|---|
-| Tests | 55 green, 152 assertions | 2026-07-14 |
+| Tests | 61 green, 166 assertions | 2026-07-14 |
 | Typecheck | clean, `strict` + `noUncheckedIndexedAccess` | 2026-07-14 |
 | Recorded n8n executions reproduced by the port | 2 of 2 (scores 73 and 23) | 2026-07-14 |
 | Enrichment latency, 4 sources in parallel | 63 to 95 ms | 2026-07-14 |
 | Console errors on load and after triage | none | 2026-07-14 |
 
 ```bash
-bun test src/        # 55 tests
+bun test src/        # 61 tests
 bun run typecheck
 ```
 
