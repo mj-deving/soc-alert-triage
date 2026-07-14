@@ -1,0 +1,21 @@
+name = "soc-alert-triage"
+main = "src/index.ts"
+compatibility_date = "2026-05-13"
+workers_dev = true
+
+[observability]
+enabled = true
+
+# No bindings. The demo's two live enrichers need no key and no state: Shodan
+# InternetDB is an open endpoint and the MITRE mapping is a table in the code.
+#
+# VirusTotal and AbuseIPDB do need a key, and it is a secret rather than a var:
+#   wrangler secret put VIRUSTOTAL_API_KEY
+#   wrangler secret put ABUSEIPDB_API_KEY
+# With neither set, /health reports both as "no key" and the pipeline marks them
+# disabled. Their scoring weight is then redistributed over the sources that did
+# answer, which is the behaviour the workflow already had.
+#
+# The dedup window lives in the isolate's memory, so it is per-isolate and does not
+# survive one being retired. A deployment that needs a real window binds a Durable
+# Object to the same interface (see src/triage/dedup.ts).

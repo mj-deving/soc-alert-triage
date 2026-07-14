@@ -5,6 +5,9 @@ node_modules/
 dist/
 *.tgz
 
+# Wrangler local dev state (miniflare cache, local bindings)
+.wrangler/
+
 # AI session artifacts
 .ai/
 .sessions/
@@ -37,7 +40,10 @@ Thumbs.db
 *.db
 .beads-credential-key
 
-# n8nac state files
+# n8nac state files. The tsconfig.json rule is scoped to the generated ones under
+# workflows/: it used to be unscoped, which also swallowed the Worker's own
+# tsconfig.json at the repo root and left a fresh clone unable to typecheck.
 .n8n-state.json
 n8n-workflows.d.ts
-tsconfig.json
+workflows/**/tsconfig.json
+.gstack/
