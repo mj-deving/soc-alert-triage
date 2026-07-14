@@ -12,9 +12,15 @@ enabled = true
 # VirusTotal and AbuseIPDB do need a key, and it is a secret rather than a var:
 #   wrangler secret put VIRUSTOTAL_API_KEY
 #   wrangler secret put ABUSEIPDB_API_KEY
-# With neither set, /health reports both as "no key" and the pipeline marks them
+#   wrangler secret put ENRICH_TOKEN
+# With none set, /health reports both as "no key" and the pipeline marks them
 # disabled. Their scoring weight is then redistributed over the sources that did
 # answer, which is the behaviour the workflow already had.
+#
+# ENRICH_TOKEN is not optional once a key is bound. /triage is public, so without
+# the token gate anyone could post any IP and spend that key's quota through this
+# Worker. A caller reaches the keyed sources only by presenting x-enrich-token; a
+# visitor gets the two keyless ones and an honest `disabled` for the rest.
 #
 # The dedup window lives in the isolate's memory, so it is per-isolate and does not
 # survive one being retired. A deployment that needs a real window binds a Durable
